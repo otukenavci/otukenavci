@@ -77,7 +77,7 @@ with st.form("muayene_formu"):
     yapan = st.text_input("Denetimi Yapan")
     tedarikci_yetkili = st.text_input("Tedarikçi Firma Yetkilisi")
     
-    cmm_data = st.text_area("QR Kod İçeriği (CMM Verileri)")
+    cmm_data = st.text_area("QR Kod İçeriği (CMM Verileri/Seri numaraları)")
 
     submit = st.form_submit_button("🚀 RAPORU OLUŞTUR")
 
