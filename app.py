@@ -86,23 +86,31 @@ if submit:
     try:
         doc = DocxTemplate("YENİ KDF FORMU.docx")
         
-        # 1. QR Kodu Oluşturma
-        qr_path = "temp_qr.png"
-        qrcode.make(cmm_data if cmm_data else "N/A").save(qr_path)
-        qr_img = InlineImage(doc, qr_path, width=Mm(28))
-
-        # 2. Kısa URL Oluşturma (Eğer girilen veri bir link ise)
+        # 1. Varsayılan (boş) değerleri belirle
+        cmm_baslik = ""
         kisa_url = ""
-        if cmm_data and (cmm_data.startswith("http://") or cmm_data.startswith("https://")):
-            try:
-                s = pyshorteners.Shortener()
-                kisa_url = s.tinyurl.short(cmm_data)
-            except Exception as e:
-                kisa_url = "URL kısaltılamadı (Bağlantı hatası)"
-        else:
-            kisa_url = cmm_data # Eğer girilen veri link değilse düz metin olarak bırak
+        qr_img = "" 
+        qr_path = "temp_qr.png"
+
+        # 2. Eğer kullanıcı kutuya bir şey yazdıysa işlemleri yap
+        if cmm_data and cmm_data.strip() != "":
+            cmm_baslik = "CMM SONUÇLARI/SERİ NUMARALARI İÇİN :"
             
-        # 3. Context (Şablona gönderilecek veriler) içine kısa url'yi ekle
+            # QR Kod oluştur
+            qrcode.make(cmm_data).save(qr_path)
+            qr_img = InlineImage(doc, qr_path, width=Mm(28))
+            
+            # Kısa URL oluştur (Eğer link ise)
+            if cmm_data.startswith("http://") or cmm_data.startswith("https://"):
+                try:
+                    s = pyshorteners.Shortener()
+                    kisa_url = s.tinyurl.short(cmm_data)
+                except Exception as e:
+                    kisa_url = cmm_data # Kısaltılamazsa orjinalini bırak
+            else:
+                kisa_url = cmm_data # Link değilse düz metni bırak
+            
+        # 3. Context verilerini hazırla
         context = {
             'belge_no': belge_no, 'tarih': tarih, 'mal_no': mal_no, 'rev_no': rev_no,
             'mal_aciklama': mal_aciklama, 'firma_adi': firma_adi, 'sip_no': sip_no,
@@ -116,14 +124,20 @@ if submit:
             'iade_mik': iade_mik, 'iade_seri': iade_seri,
             'toplam_sevk_edilebilir_urun': toplam_sevk_edilebilir_urun,
             'sevk_seri': sevk_seri, 'yapan': yapan, 'tedarikci_yetkili': tedarikci_yetkili,
+            
+            # YENİ EKLENEN KISIMLAR
+            'cmm_baslik': cmm_baslik,
             'cmm_qr': qr_img,
-            'kisa_url': kisa_url  # <--- YENİ EKLENEN KISIM
+            'kisa_url': kisa_url
         }
 
         doc.render(context)
         buffer = io.BytesIO()
         doc.save(buffer)
-        if os.path.exists(qr_path): os.remove(qr_path)
+        
+        # İşlem bitince geçici QR kod resmini sil
+        if os.path.exists(qr_path): 
+            os.remove(qr_path)
 
         st.success("✅ Rapor başarıyla hazırlandı!")
         st.download_button("📥 Word Dosyasını İndir", buffer.getvalue(), f"KDF_RAPOR_{belge_no}.docx")
